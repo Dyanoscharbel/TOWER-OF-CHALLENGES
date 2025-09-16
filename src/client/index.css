@@ -1,0 +1,212 @@
+@import 'tailwindcss';
+
+/* ===== Hide scrollbars globally ===== */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+html, body {
+  overflow-x: hidden;
+}
+
+/* ===== Loading Screen Backgrounds ===== */
+.bg-loading-phone {
+  background-image: url('/tour_phone.jpg');
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+}
+
+.bg-loading-desktop {
+  background-image: url('/tour_pas_phone.jpg');
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+}
+
+/* ===== Tower Page Styles (inspired by billtower) ===== */
+.vignette-bg {
+  background:
+    radial-gradient(ellipse at center, rgba(0,0,0,0) 38%, rgba(0,0,0,0.65) 100%),
+    linear-gradient(#0a0b14, #101422 60%, #0a0c14);
+}
+
+.bg-infinite-tower {
+  background: linear-gradient(to bottom, #1a1a2e, #16213e, #0f3460);
+  background-size: 100% 100%;
+  position: relative;
+}
+
+.bg-infinite-tower::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: 
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      rgba(255,255,255,0.05) 40px,
+      transparent 80px
+    ),
+    radial-gradient(circle at 20% 20%, rgba(255,255,255,0.05) 0 30px, transparent 31px),
+    radial-gradient(circle at 70% 60%, rgba(255,255,255,0.04) 0 24px, transparent 25px);
+}
+
+.clouds-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 45vh;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 20% 60%, rgba(255,255,255,0.9) 0 80px, transparent 81px),
+    radial-gradient(circle at 50% 40%, rgba(255,255,255,0.85) 0 100px, transparent 101px),
+    radial-gradient(circle at 80% 70%, rgba(255,255,255,0.9) 0 90px, transparent 91px);
+  filter: blur(2px);
+  animation: cloudsDrift 60s linear infinite;
+}
+
+@keyframes cloudsDrift {
+  0% { background-position: 0 0, 0 0, 0 0; }
+  100% { background-position: 60px 0, -60px 0, 40px 0; }
+}
+
+.platform {
+  height: 18px;
+  background: linear-gradient(#8b96a8, #5b6473);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.35), inset 0 -2px 0 rgba(0,0,0,0.35);
+}
+
+.stairs {
+  position: relative;
+  height: 56px;
+  width: 180px;
+  background:
+    repeating-linear-gradient(
+      to right,
+      #f97316 0 18px,
+      #ea580c 18px 22px
+    );
+  box-shadow: inset -8px 0 rgba(0,0,0,0.25), 0 8px 12px rgba(0,0,0,0.25);
+}
+
+.stairs::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.25), transparent 40%);
+  pointer-events: none;
+}
+
+.door-arch {
+  width: 140px;
+  height: 160px;
+  border-radius: 60px 60px 10px 10px;
+  position: relative;
+  background: linear-gradient(#334155, #1f2937);
+  box-shadow: inset 0 -6px 0 rgba(0,0,0,0.5);
+}
+
+.door-arch::before {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  border-radius: 68px 68px 14px 14px;
+  background: linear-gradient(#6b7280, #4b5563);
+  z-index: -1;
+}
+
+.door-arch::after {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  right: 20px;
+  bottom: 20px;
+  border-radius: 50px 50px 5px 5px;
+  background:
+    radial-gradient(circle at 20% 20%, #d1d5db 0 8px, #9ca3af 9px 12px, transparent 13px),
+    radial-gradient(circle at 50% 10%, #d1d5db 0 8px, #9ca3af 9px 12px, transparent 13px),
+    radial-gradient(circle at 80% 20%, #d1d5db 0 8px, #9ca3af 9px 12px, transparent 13px);
+  background-repeat: no-repeat;
+  background-size: 24px 24px;
+}
+
+.keyhole {
+  width: 20px;
+  height: 36px;
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(circle at 50% 35%, #000 0 9px, transparent 10px),
+    linear-gradient(#000 0 0);
+  background-position: center 0, center 16px;
+  background-size: 18px 18px, 10px 18px;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 0 4px rgba(0,0,0,0.6));
+}
+
+.keyhole.unlocked { 
+  box-shadow: 0 0 0 6px rgba(56,189,248,0.25); 
+}
+
+.keyhole.unlocked::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(56,189,248,0.45), transparent 60%);
+}
+
+.torch {
+  position: relative;
+  width: 16px;
+  height: 80px;
+}
+
+.torch .holder {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 8px;
+  background: #4b5563;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.4);
+}
+
+.torch .flame-glow {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 160px;
+  height: 160px;
+  background: radial-gradient(circle, rgba(251,191,36,0.35), transparent 60%);
+  filter: blur(14px);
+  pointer-events: none;
+}
+
+.torch .flame {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 28px;
+  background: radial-gradient(circle at 50% 30%, #fde68a 0 6px, #f59e0b 7px 12px, #ef4444 13px 16px, transparent 17px);
+  animation: flicker 0.9s infinite ease-in-out;
+}
+
+@keyframes flicker {
+  0%,100% { transform: translateX(-50%) scale(1); opacity: 0.95; }
+  50% { transform: translateX(calc(-50% + 1px)) scale(1.05); opacity: 1; }
+}
