@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Player } from '../../../shared/types/player';
 import { Progression } from '../../../shared/types/progression';
 import { Stage } from '../../../shared/types/stage';
@@ -58,6 +58,9 @@ interface WordSpreeProps {
 }
 
 const WordSpree: React.FC<WordSpreeProps> = ({ onBack }) => {
+  const clickSfxRef = useRef<HTMLAudioElement | null>(null);
+  const successSfxRef = useRef<HTMLAudioElement | null>(null);
+  const loseHeartSfxRef = useRef<HTMLAudioElement | null>(null);
   // State for the game flow: 'rules', 'playing', 'finished'
   const [gameState, setGameState] = useState<'rules' | 'playing' | 'finished'>('rules');
   const [timeLeft, setTimeLeft] = useState(15);
@@ -73,6 +76,32 @@ const WordSpree: React.FC<WordSpreeProps> = ({ onBack }) => {
   const [gameDataStage, setGameDataStage] = useState<Stage | null>(null);
   const [nextStageUnlocked, setNextStageUnlocked] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [progressionSaved, setProgressionSaved] = useState(false);
+  const loseGameSfxRef = useRef<HTMLAudioElement | null>(null);
+  const successGameSfxRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (!clickSfxRef.current) {
+      clickSfxRef.current = new Audio('/click_reaction_dash.mp3');
+      clickSfxRef.current.volume = 0.6;
+    }
+    if (!successSfxRef.current) {
+      successSfxRef.current = new Audio('/success.mp3');
+      successSfxRef.current.volume = 0.8;
+    }
+    if (!loseHeartSfxRef.current) {
+      loseHeartSfxRef.current = new Audio('/Lose_heart.mp3');
+      loseHeartSfxRef.current.volume = 0.8;
+    }
+    if (!loseGameSfxRef.current) {
+      loseGameSfxRef.current = new Audio('/lose.mp3');
+      loseGameSfxRef.current.volume = 0.9;
+    }
+    if (!successGameSfxRef.current) {
+      successGameSfxRef.current = new Audio('/success.mp3');
+      successGameSfxRef.current.volume = 0.9;
+    }
+  }, []);
 
   // Function to shuffle the outer letters
   const shuffleLetters = useCallback(() => {
@@ -135,10 +164,18 @@ const WordSpree: React.FC<WordSpreeProps> = ({ onBack }) => {
 
   // Handle game end logic with progression
   const endGame = useCallback(async () => {
-    if (!playerData || !gameDataStage) return;
+    console.log('endGame called - saving progression...');
+    if (!playerData || !gameDataStage || progressionSaved) {
+      console.log('endGame aborted: missing data or already saved');
+      return;
+    }
 
     try {
       const success = score >= gameDataStage.target_score;
+      try {
+        if (success) successGameSfxRef.current?.play().catch(() => {});
+        else loseGameSfxRef.current?.play().catch(() => {});
+      } catch (_) {}
       
       // Create or update progression
       const progressionData = {
@@ -158,6 +195,7 @@ const WordSpree: React.FC<WordSpreeProps> = ({ onBack }) => {
 
       if (response.ok) {
         console.log('Progression sauvegardée avec succès');
+        setProgressionSaved(true);
         if (success) {
           console.log('Stage réussi! Débloquage du stage suivant...');
           setNextStageUnlocked(true);
@@ -207,7 +245,8 @@ const WordSpree: React.FC<WordSpreeProps> = ({ onBack }) => {
   // Timer countdown logic
   useEffect(() => {
     if (gameState !== 'playing' || timeLeft === 0) {
-      if (timeLeft === 0) {
+      if (timeLeft === 0 && gameState === 'playing') {
+        console.log('Game ended - triggering endGame');
         endGame(); // Handle progression when game ends
         setGameState('finished');
       }
@@ -225,17 +264,35 @@ const WordSpree: React.FC<WordSpreeProps> = ({ onBack }) => {
   const addLetter = (letter: string) => {
     setCurrentWord(prev => prev + letter);
     setMessage('');
+    try {
+      if (clickSfxRef.current) {
+        clickSfxRef.current.currentTime = 0;
+        clickSfxRef.current.play().catch(() => {});
+      }
+    } catch (_) {}
   };
 
   // Remove the last letter
   const removeLetter = () => {
     setCurrentWord(prev => prev.slice(0, -1));
+    try {
+      if (clickSfxRef.current) {
+        clickSfxRef.current.currentTime = 0;
+        clickSfxRef.current.play().catch(() => {});
+      }
+    } catch (_) {}
   };
 
   // Clear the current word input
   const clearWord = () => {
     setCurrentWord('');
     setMessage('');
+    try {
+      if (clickSfxRef.current) {
+        clickSfxRef.current.currentTime = 0;
+        clickSfxRef.current.play().catch(() => {});
+      }
+    } catch (_) {}
   };
 
   // Calculate points based on word length
@@ -258,18 +315,22 @@ const WordSpree: React.FC<WordSpreeProps> = ({ onBack }) => {
     // Validation logic
     if (!currentWord.includes(gameData.centerLetter)) {
       setMessage('The word must contain the center letter!');
+      try { loseHeartSfxRef.current?.play().catch(() => {}); } catch (_) {}
       return;
     }
     if (currentWord.length < 3) {
       setMessage('Word too short (3 letters minimum)');
+      try { loseHeartSfxRef.current?.play().catch(() => {}); } catch (_) {}
       return;
     }
     if (!gameData.possibleWords.includes(currentWord.toUpperCase())) {
       setMessage('Word not recognized');
+      try { loseHeartSfxRef.current?.play().catch(() => {}); } catch (_) {}
       return;
     }
     if (foundWords.includes(currentWord.toUpperCase())) {
       setMessage('Word already found');
+      try { loseHeartSfxRef.current?.play().catch(() => {}); } catch (_) {}
       return;
     }
 
@@ -280,6 +341,7 @@ const WordSpree: React.FC<WordSpreeProps> = ({ onBack }) => {
     setFoundWords(prev => [...prev, newWord]);
     setScore(prev => prev + points);
     setMessage(`Great! +${points} points`);
+    try { successSfxRef.current?.play().catch(() => {}); } catch (_) {}
     setCurrentWord('');
   }, [currentWord, foundWords, calculatePoints]);
 

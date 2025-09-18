@@ -183,39 +183,18 @@ export const TowerLevelsPage = ({ onLevelSelect, onHomeClick }: TowerLevelsPageP
           onClick={onHomeClick}
           className="px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-800 text-white rounded-lg hover:from-gray-500 hover:to-gray-700 transition-all duration-300 flex items-center gap-2"
         >
-          <span className="text-lg">🏠</span>
-          Accueil
+         ← Back
         </button>
-        
+
         <div className="text-center">
           <h1 className="text-2xl md:text-4xl font-bold text-white">
             TOWER OF CHALLENGES
           </h1>
-          <p className="text-sm md:text-lg text-gray-300 mt-2">
-            Gravissez la tour niveau par niveau
-          </p>
+          
         </div>
-        
-        {/* Informations du joueur */}
-        <div className="flex flex-col items-end gap-1">
-          {player ? (
-            <>
-              <div className="text-white font-bold text-sm">
-                {player.username}
-              </div>
-              <div className="text-yellow-400 font-bold text-xs flex items-center gap-1">
-                ⭐ {player.score_global}
-              </div>
-              <div className="text-gray-300 text-xs">
-                Étage {player.etage_actuel}
-              </div>
-            </>
-          ) : (
-            <div className="text-gray-400 text-sm">
-              Chargement...
-            </div>
-          )}
-        </div>
+
+        {/* Player info removed as requested */}
+        <div className="w-10" />
       </div>
 
       {/* Levels List - FROM BOTTOM TO TOP */}
@@ -323,7 +302,7 @@ export const TowerLevelsPage = ({ onLevelSelect, onHomeClick }: TowerLevelsPageP
                   {status === 'unlocked' && (
                     <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2">
                       <div className="px-2 py-1 bg-blue-500 text-white text-xs rounded-full font-semibold shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        Disponible
+                      Available
                       </div>
                     </div>
                   )}

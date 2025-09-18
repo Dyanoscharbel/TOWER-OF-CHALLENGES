@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Player } from '../../../shared/types/player';
 import { Progression } from '../../../shared/types/progression';
 
@@ -34,6 +34,8 @@ const POINTS_PER_CORRECT = 10;
 const SPEED_BONUS_MULTIPLIER = 2;
 
 const ColorClickGame: React.FC<ColorClickGameProps> = ({ onBack }) => {
+  const clickSfxRef = useRef<HTMLAudioElement | null>(null);
+  const loseGameSfxRef = useRef<HTMLAudioElement | null>(null);
   const [gameState, setGameState] = useState<'menu' | 'countdown' | 'playing' | 'gameOver'>('menu');
   const [currentColorWord, setCurrentColorWord] = useState<ColorOption>(COLORS[0]!);
   const [currentDisplayColor, setCurrentDisplayColor] = useState<ColorOption>(COLORS[0]!);
@@ -76,6 +78,17 @@ const ColorClickGame: React.FC<ColorClickGameProps> = ({ onBack }) => {
     return 1000; // 1 seconde pour le reste
   }, []);
 
+  useEffect(() => {
+    if (!clickSfxRef.current) {
+      clickSfxRef.current = new Audio('/click_reaction_dash.mp3');
+      clickSfxRef.current.volume = 0.6;
+    }
+    if (!loseGameSfxRef.current) {
+      loseGameSfxRef.current = new Audio('/lose.mp3');
+      loseGameSfxRef.current.volume = 0.9;
+    }
+  }, []);
+
   const startGame = () => {
     setGameState('countdown');
     setCountdownTime(5);
@@ -91,6 +104,12 @@ const ColorClickGame: React.FC<ColorClickGameProps> = ({ onBack }) => {
 
   const handleColorClick = (clickedColor: ColorOption) => {
     if (clickedColor.color === correctAnswer.color) {
+      try {
+        if (clickSfxRef.current) {
+          clickSfxRef.current.currentTime = 0;
+          clickSfxRef.current.play().catch(() => {});
+        }
+      } catch (_) {}
       const timeBonus = Math.floor((timeLeft / currentTimeLimit) * SPEED_BONUS_MULTIPLIER);
       const points = POINTS_PER_CORRECT + timeBonus;
       setScore(prev => prev + points);
@@ -103,6 +122,7 @@ const ColorClickGame: React.FC<ColorClickGameProps> = ({ onBack }) => {
       setCurrentTimeLimit(newDelay);
       setTimeLeft(newDelay);
     } else {
+      try { loseGameSfxRef.current?.play().catch(() => {}); } catch (_) {}
       endGame();
     }
   };

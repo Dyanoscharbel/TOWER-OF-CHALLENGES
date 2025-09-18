@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Player } from '../../../shared/types/player';
 import { Progression } from '../../../shared/types/progression';
 import { Stage } from '../../../shared/types/stage';
@@ -63,12 +63,37 @@ const MemoryCardsTwist: React.FC<MemoryCardsTwistProps> = ({ onBack }) => {
   const [previewTimeLeft, setPreviewTimeLeft] = useState<number>(5);
   const [bestScore, setBestScore] = useState<number>(0);
   const [showHeartLoss, setShowHeartLoss] = useState<boolean>(false); // For heart loss animation
+  const flipSfxRef = useRef<HTMLAudioElement | null>(null);
+  const loseHeartSfxRef = useRef<HTMLAudioElement | null>(null);
+
+  const loseGameSfxRef = useRef<HTMLAudioElement | null>(null);
+  const successLevelSfxRef = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => {
+    if (!flipSfxRef.current) {
+      flipSfxRef.current = new Audio('/flip_card.mp3');
+      flipSfxRef.current.volume = 0.7;
+    }
+    if (!loseGameSfxRef.current) {
+      loseGameSfxRef.current = new Audio('/lose.mp3');
+      loseGameSfxRef.current.volume = 0.9;
+    }
+    if (!loseHeartSfxRef.current) {
+      loseHeartSfxRef.current = new Audio('/Lose_heart.mp3');
+      loseHeartSfxRef.current.volume = 0.8;
+    }
+    if (!successLevelSfxRef.current) {
+      successLevelSfxRef.current = new Audio('/success.mp3');
+      successLevelSfxRef.current.volume = 0.9;
+    }
+  }, []);
+
 
   // Progression-related states
   const [playerData, setPlayerData] = useState<Player | null>(null);
   const [gameDataStage, setGameDataStage] = useState<Stage | null>(null);
   const [nextStageUnlocked, setNextStageUnlocked] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [progressionSaved, setProgressionSaved] = useState(false);
 
   // Level configuration - now supports infinite levels
   const getLevelConfig = (level: number) => {
@@ -137,7 +162,10 @@ const MemoryCardsTwist: React.FC<MemoryCardsTwistProps> = ({ onBack }) => {
 
   // Handle game end logic with progression
   const endGame = useCallback(async () => {
-    if (!playerData || !gameDataStage) return;
+    if (!playerData || !gameDataStage || progressionSaved) {
+      console.log('endGame aborted: missing data or already saved');
+      return;
+    }
 
     try {
       const success = totalScore >= gameDataStage.target_score;
@@ -160,6 +188,7 @@ const MemoryCardsTwist: React.FC<MemoryCardsTwistProps> = ({ onBack }) => {
 
       if (response.ok) {
         console.log('Progression sauvegardée avec succès');
+        setProgressionSaved(true);
         if (success) {
           console.log('Stage réussi! Débloquage du stage suivant...');
           setNextStageUnlocked(true);
@@ -269,6 +298,12 @@ const MemoryCardsTwist: React.FC<MemoryCardsTwistProps> = ({ onBack }) => {
     if (newCards[index]) {
       newCards[index].flipped = true;
       setCards(newCards);
+      try {
+        if (flipSfxRef.current) {
+          flipSfxRef.current.currentTime = 0;
+          flipSfxRef.current.play().catch(() => {});
+        }
+      } catch (_) {}
     }
 
     // Add this card to flipped cards
@@ -311,6 +346,13 @@ const MemoryCardsTwist: React.FC<MemoryCardsTwistProps> = ({ onBack }) => {
         
         // Lose one heart for each mismatch
         setHearts(prev => Math.max(0, prev - 1));
+        // Play lose heart sfx
+        try {
+          if (loseHeartSfxRef.current) {
+            loseHeartSfxRef.current.currentTime = 0;
+            loseHeartSfxRef.current.play().catch(() => {});
+          }
+        } catch (_) {}
         
         // Trigger heart loss animation
         setShowHeartLoss(true);
@@ -326,6 +368,13 @@ const MemoryCardsTwist: React.FC<MemoryCardsTwistProps> = ({ onBack }) => {
             newCards[firstIndex].flipped = false;
             newCards[secondIndex].flipped = false;
             setCards(newCards);
+            // play flip back sound
+            try {
+              if (flipSfxRef.current) {
+                flipSfxRef.current.currentTime = 0;
+                flipSfxRef.current.play().catch(() => {});
+              }
+            } catch (_) {}
           }
           setFlippedIndices([]); // Reset flipped cards
         }, 1000);
@@ -336,11 +385,18 @@ const MemoryCardsTwist: React.FC<MemoryCardsTwistProps> = ({ onBack }) => {
           if (totalScore + levelScore > bestScore) {
             setBestScore(totalScore + levelScore);
           }
-          // Save progression
-          endGame();
-          setTimeout(() => {
+          // Save progression and end game
+          endGame().then(() => {
+            setTimeout(() => {
             setGameState('gameOver');
-          }, 1000);
+            try {
+              if (loseGameSfxRef.current) {
+                loseGameSfxRef.current.currentTime = 0;
+                loseGameSfxRef.current.play().catch(() => {});
+              }
+            } catch (_) {}
+            }, 1000);
+          });
         }
       }
     }
@@ -351,11 +407,15 @@ const MemoryCardsTwist: React.FC<MemoryCardsTwistProps> = ({ onBack }) => {
     if (gameState === 'playing' && matchedPairs === cards.length / 2 && cards.length > 0) {
       // Niveau terminé
       setTotalScore(prev => prev + levelScore);
+      try {
+        if (successLevelSfxRef.current) {
+          successLevelSfxRef.current.currentTime = 0;
+          successLevelSfxRef.current.play().catch(() => {});
+        }
+      } catch (_) {}
       
-      // Save progression when level completed
-      endGame();
-      
-      // Always proceed to the next level - infinite levels
+      // Don't save progression here, only when game is completely over
+      // Just proceed to the next level - infinite levels
       setGameState('levelComplete');
     }
   }, [matchedPairs, cards.length, gameState, levelScore, totalScore, endGame]);

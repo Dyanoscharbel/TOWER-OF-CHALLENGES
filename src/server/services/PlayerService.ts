@@ -27,13 +27,10 @@ export class PlayerService {
     const existingPlayer = await this.redis.get(playerKey);
     
     if (existingPlayer) {
-      // Joueur existant - mettre à jour les infos de base
+      // Joueur existant - mettre à jour les infos de base sans écraser l'avatar choisi en jeu
       const player: Player = JSON.parse(existingPlayer);
       player.username = data.username;
-      if (data.avatar_url) {
-        player.avatar_url = data.avatar_url;
-      }
-      
+      // Ne pas écraser player.avatar_url ici; il peut avoir été défini via le profil (AvatarX.jpg)
       await this.redis.set(playerKey, JSON.stringify(player));
       return player;
     } else {
@@ -41,7 +38,7 @@ export class PlayerService {
       const newPlayer: Player = {
         reddit_id: data.reddit_id,
         username: data.username,
-        avatar_url: data.avatar_url || '',
+        avatar_url: data.avatar_url || 'Avatar1.jpg',
         score_global: 0,
         etage_actuel: 1,
         created_at: new Date().toISOString()

@@ -3,6 +3,8 @@ import { navigateTo } from '@devvit/web/client';
 import { useCounter } from './hooks/useCounter';
 import { LoadingScreen } from './components/LoadingScreen';
 import { HomePage } from './components/HomePage';
+import ProfilePage from './components/ProfilePage';
+import MedievalGameSubmissionForm from './components/MedievalGameSubmissionForm';
 import { TowerLevelsPage } from './components/TowerLevelsPage';
 import { LeaderboardPage } from './components/LeaderboardPage';
 import { AdminPage } from './components/AdminPag';
@@ -10,12 +12,16 @@ import ClickGame from './components/jeux/Reaction Dash';
 import ColorsClickGame from './components/jeux/Color Click Game';
 import WordExpressGame from './components/jeux/Word Express';
 import MemoryCardsTwist from './components/jeux/Tiles Match';
+import FallingLettersGame from './components/jeux/Falling Letters';
 
 export const App = () => {
   const [showLoading, setShowLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState<'loading' | 'home' | 'levels' | 'counter' | 'options' | 'leaderboard' | 'admin' | 'game'>('loading');
+  const [currentPage, setCurrentPage] = useState<'loading' | 'home' | 'levels' | 'counter' | 'options' | 'leaderboard' | 'admin' | 'game' | 'profile' | 'medieval_form'>('loading');
   const [currentGame, setCurrentGame] = useState<string | null>(null);
   const { count, username, loading, increment, decrement } = useCounter();
+  const [audioReady, setAudioReady] = useState(false);
+  const audioRef = (window as any).__bgAudioRef || { current: null };
+  (window as any).__bgAudioRef = audioRef;
 
   // Gestionnaire de raccourcis clavier pour l'admin
   useEffect(() => {
@@ -41,10 +47,7 @@ export const App = () => {
   };
 
   const handleOptionsClick = () => {
-    setCurrentPage('options');
-    // Pour l'instant, on affiche juste une alerte
-    alert('Options à venir !');
-    setCurrentPage('home');
+    setCurrentPage('profile');
   };
 
   const handleLeaderboardClick = () => {
@@ -59,10 +62,58 @@ export const App = () => {
   // Exposer la fonction admin globalement pour le debug
   useEffect(() => {
     (window as any).openAdmin = handleAdminAccess;
+    (window as any).__setPage = (p: string) => setCurrentPage(p as any);
     return () => {
       delete (window as any).openAdmin;
+      delete (window as any).__setPage;
     };
   }, []);
+
+  // Musique de fond en boucle (avec reprise sur interaction si autoplay bloqué)
+  useEffect(() => {
+    if (!audioRef.current) {
+      const audio = new Audio('/Background.mp3');
+      audio.loop = true;
+      // init from localStorage
+      const storedVol = window.localStorage.getItem('bgmVolume');
+      const storedMuted = window.localStorage.getItem('bgmMuted');
+      const volNum = storedVol ? Math.max(0, Math.min(1, parseFloat(storedVol))) : 0.5;
+      audio.volume = Number.isFinite(volNum) ? volNum : 0.5;
+      audio.muted = storedMuted === 'true';
+      audioRef.current = audio;
+      const tryPlay = () => {
+        audio.play().then(() => setAudioReady(true)).catch(() => setAudioReady(false));
+      };
+      tryPlay();
+      const resume = () => {
+        if (!audioReady) {
+          audio.play().then(() => setAudioReady(true)).catch(() => {});
+        }
+      };
+      window.addEventListener('pointerdown', resume, { once: true });
+      window.addEventListener('keydown', resume, { once: true });
+    }
+  }, [audioReady]);
+
+  // Diminuer/Restaurer le volume de la musique lors de l'entrée/sortie d'un niveau
+  useEffect(() => {
+    const audio: HTMLAudioElement | null = audioRef.current;
+    if (!audio) return;
+    const target = currentPage === 'game' ? 0.18 : 0.5;
+    const durationMs = 400;
+    const steps = 8;
+    const stepTime = Math.max(16, Math.floor(durationMs / steps));
+    const start = audio.volume;
+    const delta = target - start;
+    let i = 0;
+    const id = window.setInterval(() => {
+      i++;
+      const v = start + (delta * i) / steps;
+      audio.volume = Math.max(0, Math.min(1, v));
+      if (i >= steps) window.clearInterval(id);
+    }, stepTime);
+    return () => window.clearInterval(id);
+  }, [currentPage]);
 
   const handleLevelSelect = (levelId: number, stageName?: string) => {
     console.log('Level selected:', levelId, 'Stage:', stageName);
@@ -109,6 +160,14 @@ export const App = () => {
     );
   }
 
+  if (currentPage === 'profile') {
+    return <ProfilePage onBack={() => setCurrentPage('home')} />;
+  }
+
+  if (currentPage === 'medieval_form') {
+    return <MedievalGameSubmissionForm onBack={() => setCurrentPage('home')} />;
+  }
+
   // Afficher la page du leaderboard
   if (currentPage === 'leaderboard') {
     return (
@@ -135,6 +194,7 @@ export const App = () => {
       'color click game': ColorsClickGame,
       'word express': WordExpressGame,
       'tiles match': MemoryCardsTwist,
+      'falling letters': FallingLettersGame,
     };
 
     const GameComponent = gameComponents[currentGame];
@@ -161,8 +221,7 @@ export const App = () => {
         onClick={() => setCurrentPage('home')}
         className="absolute top-4 left-4 px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-800 text-white rounded-lg hover:from-gray-500 hover:to-gray-700 transition-all duration-300 flex items-center gap-2"
       >
-        <span className="text-lg">🏠</span>
-        Accueil
+        ← Back
       </button>
 
       <img className="object-contain w-1/2 max-w-[250px] mx-auto" src="/snoo.png" alt="Snoo" />

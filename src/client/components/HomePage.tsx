@@ -36,6 +36,15 @@ export const HomePage = ({ onPlayClick, onOptionsClick, onLeaderboardClick, onAd
         <div className="text-2xl">🏆</div>
       </button>
 
+      {/* Globe icon top-right to open MedievalGameSubmissionForm */}
+      <button
+        onClick={() => (window as any).__setPage && (window as any).__setPage('medieval_form')}
+        className="absolute top-6 right-6 z-20 p-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-full shadow-2xl transform transition-all duration-300 hover:scale-110 hover:from-blue-500 hover:to-cyan-500 border-2 border-blue-400"
+        title="World / Submit"
+      >
+        <div className="text-2xl">🌍</div>
+      </button>
+
       {/* Contenu de la page d'accueil */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="relative z-10 flex flex-col items-center justify-center text-white">

@@ -308,8 +308,7 @@ export const AdminPage = ({ onHomeClick }: AdminPageProps) => {
           onClick={onHomeClick}
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2"
         >
-          <span>🏠</span>
-          Retour
+       ← Back
         </button>
         
         <h1 className="text-2xl font-bold">Administration Base de Données</h1>

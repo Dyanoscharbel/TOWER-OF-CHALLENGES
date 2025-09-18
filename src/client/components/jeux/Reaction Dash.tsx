@@ -57,6 +57,11 @@ const WordExpress = ({ onBack }: ReactionDashProps) => {
   const animationFrameId = useRef<number | null>(null);
   const lastFrameTime = useRef<number>(performance.now());
   const lastIconGenTime = useRef<number>(0);
+  const clickSfxRef = useRef<HTMLAudioElement | null>(null);
+  const bombSfxRef = useRef<HTMLAudioElement | null>(null);
+  const comboSfxRef = useRef<HTMLAudioElement | null>(null);
+  const loseHeartSfxRef = useRef<HTMLAudioElement | null>(null);
+  const loseGameSfxRef = useRef<HTMLAudioElement | null>(null);
 
   // Translated icon names
   const iconTypes = useMemo<IconType[]>(() => [
@@ -148,12 +153,57 @@ const WordExpress = ({ onBack }: ReactionDashProps) => {
     return () => window.removeEventListener('resize', handleResize);
   }, [getGameDimensions]);
 
+  // Init simple SFX (user-gesture friendly; triggered on clicks)
+  useEffect(() => {
+    if (!clickSfxRef.current) {
+      clickSfxRef.current = new Audio('/click_reaction_dash.mp3');
+      clickSfxRef.current.volume = 0.6;
+    }
+    if (!bombSfxRef.current) {
+      bombSfxRef.current = new Audio('/Bombe.mp3');
+      bombSfxRef.current.volume = 0.9;
+    }
+    if (!comboSfxRef.current) {
+      comboSfxRef.current = new Audio('/click_reaction_dash.mp3');
+      comboSfxRef.current.volume = 0.4;
+      comboSfxRef.current.playbackRate = 1.5;
+    }
+    if (!loseHeartSfxRef.current) {
+      loseHeartSfxRef.current = new Audio('/Lose_heart.mp3');
+      loseHeartSfxRef.current.volume = 0.8;
+    }
+    if (!loseGameSfxRef.current) {
+      loseGameSfxRef.current = new Audio('/lose.mp3');
+      loseGameSfxRef.current.volume = 0.9;
+    }
+  }, []);
+
+  // Play lose sound when game over triggers
+  useEffect(() => {
+    if (gameOver && loseGameSfxRef.current) {
+      try {
+        loseGameSfxRef.current.currentTime = 0;
+        loseGameSfxRef.current.play().catch(() => {});
+      } catch (_) {}
+    }
+  }, [gameOver]);
+
   const playSound = useCallback((type: 'click' | 'bomb' | 'combo') => {
+    const safePlay = (el: HTMLAudioElement | null) => {
+      if (!el) return;
+      try {
+        el.currentTime = 0;
+        el.play().catch(() => {});
+      } catch (_) {}
+    };
     if ('vibrate' in navigator) {
-      if (type === 'click') navigator.vibrate(50);
-      else if (type === 'bomb') navigator.vibrate([100, 50, 100]);
+      if (type === 'click') navigator.vibrate(20);
+      else if (type === 'bomb') navigator.vibrate([120, 60, 120]);
       else if (type === 'combo') navigator.vibrate(30);
     }
+    if (type === 'click') safePlay(clickSfxRef.current);
+    else if (type === 'bomb') safePlay(bombSfxRef.current);
+    else safePlay(comboSfxRef.current);
   }, []);
 
   const generateRandomIcon = useCallback((currentIcons: GameIcon[]): GameIcon => {
@@ -489,6 +539,13 @@ const WordExpress = ({ onBack }: ReactionDashProps) => {
             if (icon.type.component !== Bomb) {
               setHearts(prev => Math.max(0, prev - 1));
               createFloatingText('-1 ❤️', gameDimensions.width / 2, gameDimensions.height - 50, '#EF4444');
+              // Effet sonore de perte de cœur
+              try {
+                if (loseHeartSfxRef.current) {
+                  loseHeartSfxRef.current.currentTime = 0;
+                  loseHeartSfxRef.current.play().catch(() => {});
+                }
+              } catch (_) {}
             }
             return false; // Supprimer l'icône
           }
@@ -510,7 +567,15 @@ const WordExpress = ({ onBack }: ReactionDashProps) => {
 
   if (!gameActive && !gameOver) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 relative bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+      <div 
+        className="min-h-screen flex items-center justify-center p-4 relative"
+        style={{
+          backgroundImage: 'url(/Reaction.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
         <div className="absolute inset-0 bg-black/30"></div>
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           {[...Array(30)].map((_, i) => (
@@ -602,7 +667,13 @@ const WordExpress = ({ onBack }: ReactionDashProps) => {
     return (
       <div 
         ref={gameAreaRef}
-        className="min-h-screen flex flex-col items-center justify-center p-4 relative bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900"
+        className="min-h-screen flex flex-col items-center justify-center p-4 relative"
+        style={{
+          backgroundImage: 'url(/Reaction.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
       >
         <div className="absolute inset-0 bg-black/40"></div>
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -719,7 +790,15 @@ const WordExpress = ({ onBack }: ReactionDashProps) => {
 
   if (gameOver) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 relative bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+      <div 
+        className="min-h-screen flex items-center justify-center p-4 relative"
+        style={{
+          backgroundImage: 'url(/Reaction.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
         <div className="absolute inset-0 bg-black/40"></div>
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           {[...Array(25)].map((_, i) => (
@@ -812,3 +891,5 @@ const WordExpress = ({ onBack }: ReactionDashProps) => {
 };
 
 export default WordExpress;
+
+
