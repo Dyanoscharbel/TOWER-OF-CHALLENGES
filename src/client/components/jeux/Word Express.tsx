@@ -62,7 +62,7 @@ const WordSpree: React.FC<WordSpreeProps> = ({ onBack }) => {
   const loseHeartSfxRef = useRef<HTMLAudioElement | null>(null);
   // State for the game flow: 'rules', 'playing', 'finished'
   const [gameState, setGameState] = useState<'rules' | 'playing' | 'finished'>('rules');
-  const [timeLeft, setTimeLeft] = useState(15);
+  const [timeLeft, setTimeLeft] = useState(300);
 
   const [currentWord, setCurrentWord] = useState('');
   const [foundWords, setFoundWords] = useState<string[]>([]);
@@ -176,30 +176,47 @@ const WordSpree: React.FC<WordSpreeProps> = ({ onBack }) => {
         else loseGameSfxRef.current?.play().catch(() => {});
       } catch (_) {}
       
-      // Create or update progression
-      const progressionData = {
-        joueur_id: playerData.reddit_id,
-        etage_id: gameDataStage.id,
-        score: score,
-        completed: success
-      };
+      // Check if progression exists first
+      const getRes = await fetch(`/api/progression?joueur_id=${playerData.reddit_id}&etage_id=${gameDataStage.id}`);
+      
+      if (getRes.ok) {
+        const getJson = await getRes.json();
+        if (getJson.status === 'success' && getJson.data) {
+          const existing = getJson.data as { score: number };
+          if (score > existing.score) {
+            // Update existing progression with better score
+            await fetch('/api/progression/update', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ joueur_id: playerData.reddit_id, etage_id: gameDataStage.id, score: score, completed: success })
+            });
+          }
+        } else {
+          // Create new progression
+          await fetch('/api/progression/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ joueur_id: playerData.reddit_id, etage_id: gameDataStage.id, score: score, completed: success })
+          });
+        }
+      } else if (getRes.status === 404) {
+        // Create new progression
+        await fetch('/api/progression/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ joueur_id: playerData.reddit_id, etage_id: gameDataStage.id, score: score, completed: success })
+        });
+      }
 
-      const response = await fetch('/api/progression/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(progressionData),
-      });
-
-      if (response.ok) {
-        console.log('Progression sauvegardée avec succès');
-        setProgressionSaved(true);
-        if (success) {
-          console.log('Stage réussi! Débloquage du stage suivant...');
-          setNextStageUnlocked(true);
-          
-          // Mettre à jour le niveau du joueur vers le stage suivant
+      console.log('Progression sauvegardée avec succès');
+      setProgressionSaved(true);
+      
+      if (success) {
+        console.log('Stage réussi! Débloquage du stage suivant...');
+        setNextStageUnlocked(true);
+        
+        // Mettre à jour le niveau du joueur vers le stage suivant seulement si le joueur est au niveau actuel
+        if (playerData && typeof playerData.etage_actuel === 'number' && gameDataStage && typeof gameDataStage.niveau === 'number' && playerData.etage_actuel === gameDataStage.niveau) {
           try {
             const updateResponse = await fetch('/api/player/update', {
               method: 'POST',
@@ -220,10 +237,10 @@ const WordSpree: React.FC<WordSpreeProps> = ({ onBack }) => {
             console.error('Erreur lors de la mise à jour du niveau:', updateError);
           }
         } else {
-          console.log('Stage non réussi. Score:', score, 'Target:', gameDataStage.target_score);
+          console.log('Joueur pas au niveau du jeu, pas de mise à jour du niveau');
         }
       } else {
-        console.error('Erreur lors de la sauvegarde de la progression');
+        console.log('Stage non réussi. Score:', score, 'Target:', gameDataStage.target_score);
       }
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
@@ -380,7 +397,7 @@ const WordSpree: React.FC<WordSpreeProps> = ({ onBack }) => {
     setFoundWords([]);
     setCurrentWord('');
     setMessage('');
-    setTimeLeft(180);
+    setTimeLeft(300);
     setGameState('rules'); // Go back to rules screen
     shuffleLetters();
   };
@@ -413,7 +430,7 @@ const WordSpree: React.FC<WordSpreeProps> = ({ onBack }) => {
             <li>• Words must be at least 3 letters long.</li>
             <li>• The center letter (yellow) must be in every word.</li>
             <li>• The longer the word, the more points you get!</li>
-            <li>• You have <strong>3 minutes</strong> to find as many words as you can.</li>
+            <li>• You have <strong>5 minutes</strong> to find as many words as you can.</li>
             <li>• Only words from the English dictionary are accepted.</li>
           </ul>
         )}
