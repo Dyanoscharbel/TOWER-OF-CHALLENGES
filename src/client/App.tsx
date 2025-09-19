@@ -17,6 +17,7 @@ import { FlappyEscape } from './components/jeux/FlappyEscape';
 import Game2048 from './components/jeux/2048 Challenge';
 import Tetris from './components/jeux/Tetris';
 import CheckersDuel from './components/jeux/Checkers Duel';
+import SpaceBulletStorm from './components/jeux/Bulletstorm';
 
 export const App = () => {
   const [showLoading, setShowLoading] = useState(true);
@@ -71,6 +72,42 @@ export const App = () => {
       delete (window as any).openAdmin;
       delete (window as any).__setPage;
     };
+  }, []);
+
+  // Initialize tower stages if missing
+  useEffect(() => {
+    const seedStagesIfMissing = async () => {
+      try {
+        const desired = [
+          { id: 1, nom: 'Reaction Dash', description: 'You have 10 hearts. If you let an icon fall without clicking it, you lose a heart—except for bomb icons, which you should avoid. Losing all hearts ends the game.', regles: 'Click the icons to keep your hearts. Avoid letting icons fall, except bombs. If all hearts are lost, the game is over. Reach 4000 to clear the level', niveau: 1, target_score: 4000 },
+          { id: 2, nom: 'Color Click Game', description: 'A word representing a color is displayed on the screen, but the text is shown in a different color. You must click the correct color, not the word itself.', regles: 'Select the actual color of the text, not the written word. Time is extremely limited, so react quickly!Reach 600 to clear the level', niveau: 2, target_score: 600 },
+          { id: 3, nom: 'Word Express', description: 'A set of letters is provided. Your task is to form as many valid words as possible from those letters.', regles: 'Use the given letters to create different words. The more words you find, the higher your score. Reach 100 toclear the level', niveau: 3, target_score: 100 },
+          { id: 4, nom: 'Tiles Match', description: 'All the cards are briefly revealed, then flipped over. You must match the pairs of identical cards.', regles: 'Memorize the positions of the cards before they are flipped. Match two identical cards to score points. Reach 2000 to clear the level', niveau: 4, target_score: 2000 },
+          { id: 5, nom: 'Falling Letters', description: 'Random letters fall from the top of the screen. You must type them  target word.', regles: 'Type the falling letters . Completing the word gives bonus points. Reach 3500 to clear the level', niveau: 5, target_score: 3500 },
+          { id: 6, nom: 'Flappy Escape', description: 'A bird must fly through a series of obstacles without crashing. The longer you survive, the higher your score.', regles: 'Tap to keep the bird flying and avoid hitting the obstacles. Passing through each gap gives points. Reach 1500 to clear the level', niveau: 6, target_score: 1500 },
+          { id: 7, nom: '2048 Challenge', description: 'A sliding puzzle game where you combine tiles with the same number to reach higher values.', regles: 'Swipe to merge tiles. Reach 2048 to clear the level', niveau: 7, target_score: 1000 },
+          { id: 8, nom: 'Tetris', description: 'Classic block puzzle game where different shapes fall, and you must arrange them to form complete rows.', regles: 'Rotate and move blocks to complete horizontal lines. Each cleared line gives points. Survive as long as possible! Reach 2000 to clear the level', niveau: 8, target_score: 2000 },
+          { id: 9, nom: 'Checkers Duel', description: 'Play checkers against the AI. Both you and the machine have 3 hearts. Losing a match costs one heart.', regles: 'Defeat the AI in checkers before you lose all your hearts. The first to lose all hearts is defeated.', niveau: 9, target_score: 1000 },
+          { id: 10, nom: 'Bulletstorm', description: 'A space shooter where you fight waves of enemy ships. After several waves, a boss appears and must be defeated.', regles: 'Dodge bullets, destroy enemy ships, and defeat the boss to complete the level. Surviving longer increases your score.', niveau: 10, target_score: 1000 },
+        ];
+        const res = await fetch('/api/stages');
+        const json = await res.json();
+        const existing = (json?.data || json) as Array<any>;
+        const have = new Set((existing || []).map((s: any) => (s && typeof s.niveau === 'number') ? s.niveau : undefined));
+        for (const st of desired) {
+          if (!have.has(st.niveau)) {
+            try {
+              await fetch('/api/admin/stages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nom: st.nom, description: st.description, regles: st.regles, niveau: st.niveau, target_score: st.target_score })
+              });
+            } catch (_) {}
+          }
+        }
+      } catch (_) {}
+    };
+    seedStagesIfMissing();
   }, []);
 
   // Musique de fond en boucle (avec reprise sur interaction si autoplay bloqué)
@@ -171,7 +208,8 @@ export const App = () => {
         onPlayClick={handlePlayClick}
         onOptionsClick={handleOptionsClick}
         onLeaderboardClick={handleLeaderboardClick}
-        onAdminClick={handleAdminAccess}
+        // onAdminClick={handleAdminAccess}
+
       />
     );
   }
@@ -225,6 +263,7 @@ export const App = () => {
       '2048 challenge': Game2048,
       'tetris': Tetris,
       'checkers duel': CheckersDuel,
+      'bulletstorm': SpaceBulletStorm,
     };
 
     const GameComponent = gameComponents[currentGame];

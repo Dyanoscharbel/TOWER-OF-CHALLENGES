@@ -4,7 +4,7 @@ interface HomePageProps {
   onPlayClick: () => void;
   onOptionsClick: () => void;
   onLeaderboardClick: () => void;
-  onAdminClick: () => void;
+  onAdminClick?: () => void;
 }
 
 export const HomePage = ({ onPlayClick, onOptionsClick, onLeaderboardClick, onAdminClick }: HomePageProps) => {
@@ -86,19 +86,21 @@ export const HomePage = ({ onPlayClick, onOptionsClick, onLeaderboardClick, onAd
               <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </button>
 
-            {/* Bouton Administration */}
-            <button
-              onClick={onAdminClick}
-              className="group relative px-12 py-4 bg-gradient-to-r from-red-600 to-pink-600 text-white text-xl font-bold rounded-2xl shadow-2xl transform transition-all duration-300 hover:scale-110 hover:from-red-500 hover:to-pink-500 border-2 border-red-400"
-              style={{ minWidth: '200px' }}
-            >
-              <div className="flex items-center justify-center gap-3">
-                <span>⚙️</span>
-                <span>ADMIN</span>
-              </div>
-              {/* Effet de brillance au hover */}
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </button>
+            {/* Bouton Administration (affiché seulement si fourni) */}
+            {onAdminClick && (
+              <button
+                onClick={onAdminClick}
+                className="group relative px-12 py-4 bg-gradient-to-r from-red-600 to-pink-600 text-white text-xl font-bold rounded-2xl shadow-2xl transform transition-all duration-300 hover:scale-110 hover:from-red-500 hover:to-pink-500 border-2 border-red-400"
+                style={{ minWidth: '200px' }}
+              >
+                <div className="flex items-center justify-center gap-3">
+                  <span>⚙️</span>
+                  <span>ADMIN</span>
+                </div>
+                {/* Effet de brillance au hover */}
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </button>
+            )}
           </div>
           
           {/* Particules flottantes décoratives */}

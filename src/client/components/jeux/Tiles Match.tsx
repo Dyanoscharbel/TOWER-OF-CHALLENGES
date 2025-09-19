@@ -189,7 +189,7 @@ const MemoryCardsTwist: React.FC<MemoryCardsTwistProps> = ({ onBack }) => {
       if (response.ok) {
         console.log('Progression sauvegardée avec succès');
         setProgressionSaved(true);
-        if (success) {
+        if (success && playerData && gameDataStage && typeof playerData.etage_actuel === 'number' && typeof gameDataStage.niveau === 'number' && playerData.etage_actuel === gameDataStage.niveau) {
           console.log('Stage réussi! Débloquage du stage suivant...');
           setNextStageUnlocked(true);
           

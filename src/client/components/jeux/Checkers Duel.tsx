@@ -750,7 +750,7 @@ const CheckersGame = ({ onBack }: CheckersGameProps) => {
     <div 
       className="min-h-screen p-1 flex items-center justify-center overflow-hidden"
       style={{
-        backgroundImage: 'url(/Faleter2.png)',
+        backgroundImage: 'url(/dame.png)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat'

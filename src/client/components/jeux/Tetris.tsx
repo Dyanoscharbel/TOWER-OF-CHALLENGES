@@ -604,20 +604,7 @@ const Tetris: React.FC<TetrisGameProps> = ({ onBack }) => {
         
         <div className="absolute inset-0 bg-black/30"></div>
         
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {[...Array(30)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-1 h-1 bg-amber-200 rounded-full animate-pulse opacity-60"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 3}s`,
-                animationDuration: `${2 + Math.random() * 2}s`
-              }}
-            />
-          ))}
-        </div>
+        
 
         <div className="bg-black/40 backdrop-blur-sm rounded-lg p-4 sm:p-8 max-w-sm sm:max-w-md w-full mx-2 text-center border border-amber-500/30 relative z-10">
           <h1 className="text-2xl sm:text-3xl font-bold text-amber-100 mb-4 sm:mb-6 drop-shadow-lg">⚡ TETRIS ⚡</h1>
@@ -693,20 +680,7 @@ const Tetris: React.FC<TetrisGameProps> = ({ onBack }) => {
 
         <div className="absolute inset-0 bg-black/40"></div>
 
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {[...Array(25)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-1 h-1 bg-amber-200 rounded-full animate-pulse opacity-70"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 3}s`,
-                animationDuration: `${2 + Math.random() * 2}s`
-              }}
-            />
-          ))}
-        </div>
+        
 
         <div className="bg-black/50 backdrop-blur-sm rounded-lg p-4 sm:p-8 max-w-sm sm:max-w-md w-full mx-2 text-center border border-amber-500/30 relative z-10">
           <h1 className="text-2xl sm:text-3xl font-bold text-amber-100 mb-4 sm:mb-6 drop-shadow-lg">
@@ -780,21 +754,7 @@ const Tetris: React.FC<TetrisGameProps> = ({ onBack }) => {
     >
       <div className="absolute inset-0 bg-black/60"></div>
       
-      {/* Étoiles/particules d'arrière-plan */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(30)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-amber-200 rounded-full animate-pulse opacity-60"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${2 + Math.random() * 2}s`
-            }}
-          />
-        ))}
-      </div>
+      
       
       <div className="relative z-10 w-full min-h-screen py-1 px-1" style={{ transform: "scale(0.95)", transformOrigin: "center top" }}>
         {/* Titre compact */}
