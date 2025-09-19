@@ -304,7 +304,8 @@ const WordExpress = ({ onBack }: ReactionDashProps) => {
     setTimeout(() => textDiv.remove(), 1000);
   }, []);
 
-  const handleIconClick = useCallback((clickedIcon: GameIcon, event: React.MouseEvent) => {
+  const handleIconClick = useCallback((clickedIcon: GameIcon, event: React.MouseEvent | React.TouchEvent) => {
+    event.preventDefault();
     event.stopPropagation();
 
     // Empêcher les clics multiples sur la même icône
@@ -577,20 +578,6 @@ const WordExpress = ({ onBack }: ReactionDashProps) => {
         }}
       >
         <div className="absolute inset-0 bg-black/30"></div>
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {[...Array(30)].map((_, i) => (
-            <div 
-              key={i} 
-              className="absolute w-1 h-1 bg-yellow-200 rounded-full animate-pulse opacity-60" 
-              style={{ 
-                left: `${Math.random() * 100}%`, 
-                top: `${Math.random() * 100}%`, 
-                animationDelay: `${Math.random() * 3}s`, 
-                animationDuration: `${2 + Math.random() * 2}s` 
-              }} 
-            />
-          ))}
-        </div>
         <div className="bg-black/40 backdrop-blur-sm rounded-lg p-8 max-w-md w-full text-center border border-amber-500/30 relative z-10">
           <h1 className="text-3xl font-bold text-amber-100 mb-6 drop-shadow-lg">
             {stageData?.nom || "Reaction Dash"}
@@ -680,7 +667,7 @@ const WordExpress = ({ onBack }: ReactionDashProps) => {
           {[...Array(20)].map((_, i) => (
             <div 
               key={i} 
-              className="absolute w-1 h-1 bg-yellow-200 rounded-full animate-pulse opacity-50" 
+              className="absolute w-1 h-1 bg-yellow-200 rounded-full opacity-50" 
               style={{ 
                 left: `${Math.random() * 100}%`, 
                 top: `${Math.random() * 100}%`, 
@@ -705,7 +692,7 @@ const WordExpress = ({ onBack }: ReactionDashProps) => {
             </div>
             <div className="text-amber-100 text-right flex flex-col items-end gap-2">
               <div className="text-2xl font-bold">
-                Hearts: <span className={`${hearts <= 3 ? 'text-red-400 animate-pulse' : 'text-red-400'}`}>
+                Hearts: <span className="text-red-400">
                   ❤️X{hearts}
                 </span>
               </div>
@@ -723,7 +710,7 @@ const WordExpress = ({ onBack }: ReactionDashProps) => {
           <div className="mb-4 bg-black/30 rounded-full h-4 overflow-hidden border-2 border-red-500/40">
             <div 
               className={`h-full transition-all duration-300 ease-linear ${
-                hearts <= 3 ? 'bg-gradient-to-r from-red-600 to-red-700 animate-pulse' : 
+                hearts <= 3 ? 'bg-gradient-to-r from-red-600 to-red-700' : 
                 'bg-gradient-to-r from-green-400 via-yellow-400 to-red-500'
               }`} 
               style={{ width: `${Math.max(0, (hearts / 10) * 100)}%` }}
@@ -747,10 +734,14 @@ const WordExpress = ({ onBack }: ReactionDashProps) => {
                     zIndex: isRare ? 20 : 10 
                   }}
                   onClick={(e) => handleIconClick(icon, e)}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    handleIconClick(icon, e);
+                  }}
                 >
                   <div className="relative">
                     <div 
-                      className={`absolute inset-0 rounded-full blur-md ${isRare ? 'animate-pulse opacity-80' : 'opacity-60'}`} 
+                      className="absolute inset-0 rounded-full blur-md opacity-60" 
                       style={{ 
                         width: gameDimensions.iconSize * 1.5, 
                         height: gameDimensions.iconSize * 1.5, 
@@ -761,7 +752,7 @@ const WordExpress = ({ onBack }: ReactionDashProps) => {
                     />
                     <div 
                       className={`relative rounded-full bg-black/20 backdrop-blur-sm border-2 flex items-center justify-center shadow-lg ${
-                        isRare ? 'border-yellow-400/60 animate-pulse' : 'border-amber-500/30'
+                        isRare ? 'border-yellow-400/60' : 'border-amber-500/30'
                       }`} 
                       style={{ width: gameDimensions.iconSize, height: gameDimensions.iconSize }}
                     >
@@ -804,7 +795,7 @@ const WordExpress = ({ onBack }: ReactionDashProps) => {
           {[...Array(25)].map((_, i) => (
             <div 
               key={i} 
-              className="absolute w-1 h-1 bg-yellow-200 rounded-full animate-pulse opacity-70" 
+              className="absolute w-1 h-1 bg-yellow-200 rounded-full opacity-70" 
               style={{ 
                 left: `${Math.random() * 100}%`, 
                 top: `${Math.random() * 100}%`, 
@@ -855,7 +846,7 @@ const WordExpress = ({ onBack }: ReactionDashProps) => {
               </p>
             </div>
             {score === bestScore && score > 0 && (
-              <div className="text-yellow-300 text-lg font-bold animate-pulse">
+              <div className="text-yellow-300 text-lg font-bold">
                 🏆 New Record! 🏆
               </div>
             )}

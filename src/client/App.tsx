@@ -13,6 +13,10 @@ import ColorsClickGame from './components/jeux/Color Click Game';
 import WordExpressGame from './components/jeux/Word Express';
 import MemoryCardsTwist from './components/jeux/Tiles Match';
 import FallingLettersGame from './components/jeux/Falling Letters';
+import { FlappyEscape } from './components/jeux/FlappyEscape';
+import Game2048 from './components/jeux/2048 Challenge';
+import Tetris from './components/jeux/Tetris';
+import CheckersDuel from './components/jeux/Checkers Duel';
 
 export const App = () => {
   const [showLoading, setShowLoading] = useState(true);
@@ -74,6 +78,7 @@ export const App = () => {
     if (!audioRef.current) {
       const audio = new Audio('/Background.mp3');
       audio.loop = true;
+      audio.preload = 'auto';
       // init from localStorage
       const storedVol = window.localStorage.getItem('bgmVolume');
       const storedMuted = window.localStorage.getItem('bgmMuted');
@@ -81,17 +86,38 @@ export const App = () => {
       audio.volume = Number.isFinite(volNum) ? volNum : 0.5;
       audio.muted = storedMuted === 'true';
       audioRef.current = audio;
+      
       const tryPlay = () => {
         audio.play().then(() => setAudioReady(true)).catch(() => setAudioReady(false));
       };
+      
+      // Try to play immediately
       tryPlay();
+      
+      // Add multiple event listeners for mobile compatibility
       const resume = () => {
-        if (!audioReady) {
+        if (!audioReady && !audio.muted) {
           audio.play().then(() => setAudioReady(true)).catch(() => {});
         }
       };
+      
+      // Add listeners for various interaction types
       window.addEventListener('pointerdown', resume, { once: true });
       window.addEventListener('keydown', resume, { once: true });
+      window.addEventListener('touchstart', resume, { once: true });
+      window.addEventListener('click', resume, { once: true });
+      
+      // Also try to resume when the page becomes visible (mobile specific)
+      const handleVisibilityChange = () => {
+        if (!document.hidden && !audioReady && !audio.muted) {
+          audio.play().then(() => setAudioReady(true)).catch(() => {});
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
     }
   }, [audioReady]);
 
@@ -195,6 +221,10 @@ export const App = () => {
       'word express': WordExpressGame,
       'tiles match': MemoryCardsTwist,
       'falling letters': FallingLettersGame,
+      'flappy escape': FlappyEscape,
+      '2048 challenge': Game2048,
+      'tetris': Tetris,
+      'checkers duel': CheckersDuel,
     };
 
     const GameComponent = gameComponents[currentGame];

@@ -504,7 +504,7 @@ const FallingLettersGame: React.FC<FallingLettersGameProps> = ({ onBack }) => {
                     }
                   }
                   if (stillNeeded) {
-                    handleLetterLost();
+                      handleLetterLost();
                   }
                   lettersOnScreen.current.delete(letter.id);
                   shouldRerender = true;

@@ -161,13 +161,13 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
               <div className="text-center mb-6 sm:mb-8">
                 <div className="inline-block relative">
                   <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-4xl sm:text-6xl shadow-2xl border-2 sm:border-4 border-white/20 backdrop-blur-lg">
-                  {previewUrl ? (
+                    {previewUrl ? (
                       <img 
                         src={previewUrl} 
                         alt="Avatar preview" 
                         className="w-full h-full rounded-full object-cover"
                       />
-                  ) : selectedAvatar ? (
+                    ) : selectedAvatar ? (
                     <img src={`/Avatar/${selectedAvatar}`} alt="avatar" className="w-full h-full rounded-full object-cover" />
                     ) : (
                       <User className="w-12 h-12 sm:w-16 sm:h-16 text-white/80" />
@@ -192,21 +192,21 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                 ) : availableAvatars.length === 0 ? (
                   <div className="text-purple-300">No avatars found in /Avatar</div>
                 ) : (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
                     {availableAvatars.map((filename) => (
-                      <button
+                    <button
                         key={filename}
                         onClick={() => handleAvatarSelect(filename)}
                         className={`p-1 sm:p-2 rounded-xl sm:rounded-2xl border-2 transition-all duration-300 hover:scale-105 sm:hover:scale-110 ${
                           selectedAvatar === filename
-                            ? 'border-pink-400 bg-pink-500/20 shadow-lg'
-                            : 'border-white/20 bg-white/5 hover:border-purple-400 hover:bg-white/10'
-                        }`}
-                      >
+                          ? 'border-pink-400 bg-pink-500/20 shadow-lg'
+                          : 'border-white/20 bg-white/5 hover:border-purple-400 hover:bg-white/10'
+                      }`}
+                    >
                         <img src={`/Avatar/${filename}`} alt={filename} className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover" />
-                      </button>
-                    ))}
-                  </div>
+                    </button>
+                  ))}
+                </div>
                 )}
               </div>
 

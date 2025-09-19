@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Player } from '../../../shared/types/player';
-import { Progression } from '../../../shared/types/progression';
 import { Stage } from '../../../shared/types/stage';
 
 // Game configuration data moved outside the component for better performance
@@ -397,7 +396,7 @@ const WordSpree: React.FC<WordSpreeProps> = ({ onBack }) => {
 
   const renderRulesScreen = () => (
     <div className="relative z-10 w-full max-w-2xl text-center">
-      <h1 className="text-5xl font-bold text-amber-100 mb-8 drop-shadow-lg">Word Spree</h1>
+      <h1 className="text-5xl font-bold text-amber-100 mb-8 drop-shadow-lg">Word Express</h1>
       <div className="bg-black/40 backdrop-blur-sm rounded-lg p-8 border border-amber-500/30">
         <h3 className="text-2xl font-semibold text-amber-200 mb-4">How to Play:</h3>
         
@@ -431,7 +430,7 @@ const WordSpree: React.FC<WordSpreeProps> = ({ onBack }) => {
 
   const renderGameScreen = () => (
     <div className="relative z-10 w-full max-w-4xl">
-      <h1 className="text-4xl font-bold text-center text-amber-100 mb-8 drop-shadow-lg">Word Spree</h1>
+      <h1 className="text-4xl font-bold text-center text-amber-100 mb-8 drop-shadow-lg">Word Express</h1>
       {/* Score and stats */}
       <div className="bg-black/30 backdrop-blur-sm rounded-lg p-6 mb-6 border border-amber-500/20">
         <div className="flex justify-between items-center mb-2">
@@ -607,7 +606,10 @@ const WordSpree: React.FC<WordSpreeProps> = ({ onBack }) => {
     <div
       className="min-h-screen flex flex-col items-center justify-center p-4 relative"
       style={{
-        background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e3a8a 100%)'
+        backgroundImage: 'url(/letter.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
       }}
     >
       {onBack && (

@@ -5,13 +5,12 @@ interface LeaderboardPageProps {
   onHomeClick: () => void;
 }
 
-type LeaderboardType = 'total_score' | 'level_ranking' | 'stage_reached';
+type LeaderboardType = 'total_score' | 'score_by_game' | 'current_stage' | 'games_ranking';
 
-interface LevelLeaderboard {
-  level_id: number;
-  level_name: string;
+interface GameLeaderboard {
+  game_name: string;
   players: Array<{
-    player: unknown;
+    player: any;
     score: number;
     stage_id: number;
   }>;
@@ -20,154 +19,39 @@ interface LevelLeaderboard {
 export const LeaderboardPage = ({ onHomeClick }: LeaderboardPageProps) => {
   const { leaderboard, loading, error, fetchLeaderboard } = useLeaderboard();
   const [activeTab, setActiveTab] = useState<LeaderboardType>('total_score');
-  const [levelLeaderboards, setLevelLeaderboards] = useState<LevelLeaderboard[]>([]);
-  const [loadingLevels, setLoadingLevels] = useState(false);
-  const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
-  const [availableLevels, setAvailableLevels] = useState<Array<{id: number, name: string}>>([]);
-  const [totalLeaderboard, setTotalLeaderboard] = useState<Array<{ player: { reddit_id: string; username: string; etage_actuel: number }; score: number }>>([]);
-  const [loadingTotal, setLoadingTotal] = useState(false);
+  const [gameLeaderboards, setGameLeaderboards] = useState<GameLeaderboard[]>([]);
+  const [loadingGames, setLoadingGames] = useState(false);
+  const [totalScoreLeaderboard, setTotalScoreLeaderboard] = useState<Array<{ player: { reddit_id: string; username: string; etage_actuel: number }; score: number }>>([]);
+  const [loadingTotalScore, setLoadingTotalScore] = useState(false);
 
   useEffect(() => {
-    void fetchLeaderboard();
-    if (activeTab === 'level_ranking') {
-      void fetchAvailableLevels();
+    fetchLeaderboard();
+    if (activeTab === 'games_ranking') {
+      fetchGameLeaderboards();
     }
     if (activeTab === 'total_score') {
-      void fetchTotalLeaderboard();
+      fetchTotalScoreLeaderboard();
     }
-  }, [activeTab, fetchLeaderboard]);
+  }, [activeTab]);
 
-  useEffect(() => {
-    if (selectedLevel && activeTab === 'level_ranking') {
-      void fetchLevelLeaderboards();
-    }
-  }, [selectedLevel, activeTab]);
-
-  const fetchAvailableLevels = async () => {
+  const fetchTotalScoreLeaderboard = async () => {
+    if (loadingTotalScore) return; // Prevent multiple simultaneous calls
+    setLoadingTotalScore(true);
     try {
-      const stagesResponse = await fetch('/api/stages');
-      const stagesData = await stagesResponse.json();
-      const stages = stagesData?.data || stagesData;
-      
-      if (!Array.isArray(stages)) {
-        console.error('Stages data is not an array:', stages);
-        return;
-      }
-      
-      // Group by level and get unique levels
-      const levelMap = new Map<number, string>();
-      stages.forEach((stage: unknown) => {
-        const stageData = stage as { niveau_id?: number; nom_niveau?: string };
-        if (stageData.niveau_id && stageData.nom_niveau) {
-          levelMap.set(stageData.niveau_id, stageData.nom_niveau);
-        }
-      });
-      
-      const levels = Array.from(levelMap.entries()).map(([id, name]) => ({ id, name }));
-      setAvailableLevels(levels);
-      
-      // Select first level by default
-      if (levels.length > 0 && levels[0]?.id) {
-        setSelectedLevel(levels[0].id);
-      }
-    } catch (error) {
-      console.error('Error fetching available levels:', error);
-    }
-  };
-
-  const fetchLevelLeaderboards = async () => {
-    if (!selectedLevel) return;
-    
-    setLoadingLevels(true);
-    try {
-      // Get stages for the selected level
-      const stagesResponse = await fetch('/api/stages');
-      const stagesData = await stagesResponse.json();
-      const stages = stagesData?.data || stagesData;
-      
-      if (!Array.isArray(stages)) {
-        console.error('Stages data is not an array:', stages);
-        return;
-      }
-      
-      // Filter stages for the selected level
-      const levelStages = stages.filter((stage: unknown) => {
-        const stageData = stage as { niveau_id?: number };
-        return stageData.niveau_id === selectedLevel;
-      });
-      
-      if (levelStages.length === 0) {
-        setLevelLeaderboards([]);
-        return;
-      }
-      
-      // Get progressions
+      // Get all progressions
       const progressionsResponse = await fetch('/api/admin/progressions');
-      const progressions = await progressionsResponse.json();
+      const progressionsResult = await progressionsResponse.json();
+      
+      // Extract the data array from the response
+      const progressions = progressionsResult?.data || progressionsResult;
       
       if (!Array.isArray(progressions)) {
-        console.error('Progressions response is not an array');
-        return;
-      }
-      
-      // Filter progressions for this level's stages
-      const levelProgressions = progressions.filter((p: unknown) => {
-        const progression = p as { etage_id?: number };
-        return levelStages.some((stage: unknown) => {
-          const stageData = stage as { id?: number };
-          return stageData.id === progression.etage_id;
-        });
-      });
-      
-      // Group by player and calculate best score
-      const playerScores: { [key: string]: { score: number; stage_id: number; player: unknown } } = {};
-      for (const progression of levelProgressions) {
-        const progressionData = progression as { joueur_id?: string; score?: number; etage_id?: number };
-        if (!progressionData.joueur_id || !progressionData.score || !progressionData.etage_id) continue;
-        
-        const currentPlayerScore = playerScores[progressionData.joueur_id];
-        if (!currentPlayerScore || currentPlayerScore.score < progressionData.score) {
-          try {
-            const playerResponse = await fetch(`/api/admin/players/${progressionData.joueur_id}`);
-            const player = await playerResponse.json();
-            playerScores[progressionData.joueur_id] = {
-              score: progressionData.score,
-              stage_id: progressionData.etage_id,
-              player
-            };
-          } catch (e) {
-            console.warn('Player not found:', progressionData.joueur_id);
-          }
-        }
-      }
-      
-      const levelName = availableLevels.find(l => l.id === selectedLevel)?.name || `Niveau ${selectedLevel}`;
-      setLevelLeaderboards([{
-        level_id: selectedLevel,
-        level_name: levelName,
-        players: Object.values(playerScores)
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 10)
-      }]);
-    } catch (error) {
-      console.error('Error fetching level leaderboards:', error);
-    } finally {
-      setLoadingLevels(false);
-    }
-  };
-
-  const fetchTotalLeaderboard = async () => {
-    setLoadingTotal(true);
-    try {
-      const progressionsResponse = await fetch('/api/admin/progressions');
-      const progressions = await progressionsResponse.json();
-      if (!Array.isArray(progressions)) {
-        console.error('Progressions response is not an array');
-        setTotalLeaderboard([]);
+        console.error('Progressions data is not an array:', progressions);
+        setTotalScoreLeaderboard([]);
         return;
       }
 
-      // Aggregate total score per player
+      // Aggregate total score per player (sum of all progression scores)
       const totals: Record<string, number> = {};
       for (const p of progressions) {
         const pr = p as { joueur_id?: string; score?: number };
@@ -176,30 +60,144 @@ export const LeaderboardPage = ({ onHomeClick }: LeaderboardPageProps) => {
       }
 
       const entries = Object.entries(totals);
-      // Fetch players details sequentially (small sets) or in limited parallel
+      
+      // Get all players at once
+      const playersResponse = await fetch('/api/admin/players');
+      const playersResult = await playersResponse.json();
+      const allPlayers = playersResult?.data || playersResult;
+      
+      if (!Array.isArray(allPlayers)) {
+        console.error('Players data is not an array:', allPlayers);
+        setTotalScoreLeaderboard([]);
+        return;
+      }
+      
+      // Create a map for quick player lookup
+      const playersMap = new Map<string, any>();
+      allPlayers.forEach((player: any) => {
+        if (player?.reddit_id) {
+          playersMap.set(player.reddit_id, player);
+        }
+      });
+      
+      // Build results using the players map
       const results: Array<{ player: { reddit_id: string; username: string; etage_actuel: number }; score: number }> = [];
       for (const [joueur_id, score] of entries) {
-        try {
-          const playerRes = await fetch(`/api/admin/players/${joueur_id}`);
-          const player = await playerRes.json();
-          const safePlayer = {
-            reddit_id: player?.reddit_id ?? joueur_id,
-            username: player?.username ?? 'Unknown',
-            etage_actuel: typeof player?.etage_actuel === 'number' ? player.etage_actuel : 0
-          };
-          results.push({ player: safePlayer, score });
-        } catch (e) {
-          results.push({ player: { reddit_id: joueur_id, username: 'Unknown', etage_actuel: 0 }, score });
-        }
+        const player = playersMap.get(joueur_id);
+        const safePlayer = {
+          reddit_id: player?.reddit_id ?? joueur_id,
+          username: player?.username ?? 'Unknown',
+          etage_actuel: typeof player?.etage_actuel === 'number' ? player.etage_actuel : 0
+        };
+        results.push({ player: safePlayer, score });
       }
 
+      // Sort by total score (sum of progressions) descending
       results.sort((a, b) => b.score - a.score);
-      setTotalLeaderboard(results);
+      setTotalScoreLeaderboard(results);
     } catch (error) {
-      console.error('Error fetching total leaderboard:', error);
-      setTotalLeaderboard([]);
+      console.error('Error fetching total score leaderboard:', error);
+      setTotalScoreLeaderboard([]);
     } finally {
-      setLoadingTotal(false);
+      setLoadingTotalScore(false);
+    }
+  };
+
+  const fetchGameLeaderboards = async () => {
+    setLoadingGames(true);
+    try {
+      // Get stages to know the games
+      const stagesResponse = await fetch('/api/stages');
+      const stagesData = await stagesResponse.json();
+      console.log('Stages response:', stagesData);
+      
+      // Extract the data array from the response
+      const stages = stagesData?.data || stagesData;
+      
+      // Check if stages is an array
+      if (!Array.isArray(stages)) {
+        console.error('Stages data is not an array:', stages);
+        return;
+      }
+      
+      // Group by game name and get best scores
+      const gameGroups: { [key: string]: any[] } = {};
+      stages.forEach((stage: any) => {
+        if (!gameGroups[stage.nom]) {
+          gameGroups[stage.nom] = [];
+        }
+        gameGroups[stage.nom]!.push(stage);
+      });
+
+      // For each game, get progressions
+      const gameLeaderboardsData: GameLeaderboard[] = [];
+      for (const [gameName, gameStages] of Object.entries(gameGroups)) {
+        try {
+          const progressionsResponse = await fetch('/api/admin/progressions');
+          const progressionsResult = await progressionsResponse.json();
+          
+          // Extract the data array from the response
+          const progressions = progressionsResult?.data || progressionsResult;
+          
+          // Check if progressions is an array
+          if (!Array.isArray(progressions)) {
+            console.error('Progressions data is not an array for game:', gameName, progressions);
+            continue;
+          }
+          
+          // Filter progressions for this game
+          const gameProgressions = progressions.filter((p: any) => 
+            gameStages.some((stage: any) => stage.id === p.etage_id)
+          );
+          
+          // Get all players for this game (we need to get them once per game, not per progression)
+          const playersResponse = await fetch('/api/admin/players');
+          const playersResult = await playersResponse.json();
+          const allPlayers = playersResult?.data || playersResult;
+          
+          if (!Array.isArray(allPlayers)) {
+            console.error('Players data is not an array for game:', gameName);
+            continue;
+          }
+          
+          // Create a map for quick player lookup
+          const playersMap = new Map<string, any>();
+          allPlayers.forEach((player: any) => {
+            if (player?.reddit_id) {
+              playersMap.set(player.reddit_id, player);
+            }
+          });
+          
+          // Group by player and calculate best score
+          const playerScores: { [key: string]: { score: number; stage_id: number; player: any } } = {};
+          for (const progression of gameProgressions) {
+            const currentPlayerScore = playerScores[progression.joueur_id];
+            if (!currentPlayerScore || currentPlayerScore.score < progression.score) {
+              const player = playersMap.get(progression.joueur_id);
+              playerScores[progression.joueur_id] = {
+                score: progression.score,
+                stage_id: progression.etage_id,
+                player: player || { reddit_id: progression.joueur_id, username: 'Unknown', etage_actuel: 0 }
+              };
+            }
+          }
+          
+          gameLeaderboardsData.push({
+            game_name: gameName,
+            players: Object.values(playerScores)
+              .sort((a, b) => b.score - a.score)
+              .slice(0, 10)
+          });
+        } catch (e) {
+          console.error('Error fetching progressions for game:', gameName, e);
+        }
+      }
+      
+      setGameLeaderboards(gameLeaderboardsData);
+    } catch (error) {
+      console.error('Error fetching game leaderboards:', error);
+    } finally {
+      setLoadingGames(false);
     }
   };
 
@@ -226,7 +224,8 @@ export const LeaderboardPage = ({ onHomeClick }: LeaderboardPageProps) => {
             onClick={onHomeClick}
             className="px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-800 text-white rounded-lg hover:from-gray-500 hover:to-gray-700 transition-all duration-300 flex items-center gap-2"
           >
-          ← Back
+            <span className="text-lg">🏠</span>
+            Home
           </button>
           
           <div className="text-center">
@@ -244,44 +243,54 @@ export const LeaderboardPage = ({ onHomeClick }: LeaderboardPageProps) => {
         {/* Navigation Tabs */}
         <div className="px-4 md:px-6 mb-6">
           <div className="bg-black bg-opacity-20 rounded-lg p-1 max-w-4xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
-              <button
-                onClick={() => setActiveTab('total_score')}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                  activeTab === 'total_score'
-                    ? 'bg-yellow-600 text-white shadow-lg'
-                    : 'text-gray-300 hover:text-slate-900 hover:bg-white hover:bg-opacity-10'
-                }`}
-              >
-                🎯 Score Total
-              </button>
-              <button
-                onClick={() => setActiveTab('level_ranking')}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                  activeTab === 'level_ranking'
-                    ? 'bg-yellow-600 text-white shadow-lg'
-                    : 'text-gray-300 hover:text-slate-900 hover:bg-white hover:bg-opacity-10'
-                }`}
-              >
-                🏗️ Classement par Niveau
-              </button>
-              <button
-                onClick={() => setActiveTab('stage_reached')}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                  activeTab === 'stage_reached'
-                    ? 'bg-yellow-600 text-white shadow-lg'
-                    : 'text-gray-300 hover:text-slate-900 hover:bg-white hover:bg-opacity-10'
-                }`}
-              >
-                📈 Étage Atteint
-              </button>
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+            <button
+              onClick={() => setActiveTab('total_score')}
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                activeTab === 'total_score'
+                  ? 'bg-yellow-600 text-white shadow-lg'
+                  : 'text-gray-300 hover:text-white hover:bg-white hover:bg-opacity-10'
+              }`}
+            >
+               Total Score
+            </button>
+            <button
+              onClick={() => setActiveTab('score_by_game')}
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                activeTab === 'score_by_game'
+                  ? 'bg-yellow-600 text-white shadow-lg'
+                  : 'text-gray-300 hover:text-white hover:bg-white hover:bg-opacity-10'
+              }`}
+            >
+              ⭐ Score by Game
+            </button>
+            <button
+              onClick={() => setActiveTab('current_stage')}
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                activeTab === 'current_stage'
+                  ? 'bg-yellow-600 text-white shadow-lg'
+                  : 'text-gray-300 hover:text-white hover:bg-white hover:bg-opacity-10'
+              }`}
+            >
+              🏗️ Current Stage
+            </button>
+            <button
+              onClick={() => setActiveTab('games_ranking')}
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                activeTab === 'games_ranking'
+                  ? 'bg-yellow-600 text-white shadow-lg'
+                  : 'text-gray-300 hover:text-white hover:bg-white hover:bg-opacity-10'
+              }`}
+            >
+              🎮 Games Ranking
+            </button>
           </div>
         </div>
+      </div>
 
         {/* Content */}
         <div className="flex-1 p-4 md:p-6 max-w-4xl mx-auto w-full">
-        {((activeTab === 'total_score' && loadingTotal) || (activeTab === 'level_ranking' && loadingLevels) || loading) && (
+        {(loading || (activeTab === 'total_score' && loadingTotalScore) || (activeTab === 'games_ranking' && loadingGames)) && (
           <div className="text-center text-white">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
             Loading leaderboard...
@@ -302,15 +311,15 @@ export const LeaderboardPage = ({ onHomeClick }: LeaderboardPageProps) => {
         )}
 
         {/* Total Score Ranking */}
-        {!error && activeTab === 'total_score' && !loadingTotal && (
+        {!loading && !error && activeTab === 'total_score' && !loadingTotalScore && (
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-white text-center mb-6">🎯 Classement par Score Total</h2>
-            {totalLeaderboard.length === 0 ? (
+            <h2 className="text-2xl font-bold text-white text-center mb-6"> Total Score Ranking</h2>
+            {totalScoreLeaderboard.length === 0 ? (
               <div className="text-center text-gray-400">
                 <p>No players in the leaderboard yet.</p>
               </div>
             ) : (
-              totalLeaderboard.map((entry, index) => (
+              totalScoreLeaderboard.map((entry, index) => (
                 <div 
                   key={entry.player.reddit_id}
                   className={`p-4 rounded-lg ${
@@ -344,7 +353,6 @@ export const LeaderboardPage = ({ onHomeClick }: LeaderboardPageProps) => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-yellow-300 text-2xl">🎯</span>
                       <span className="text-white font-bold text-xl">
                         {entry.score.toLocaleString()}
                       </span>
@@ -356,111 +364,70 @@ export const LeaderboardPage = ({ onHomeClick }: LeaderboardPageProps) => {
           </div>
         )}
 
-        {/* Level Ranking */}
-        {!loading && !error && activeTab === 'level_ranking' && (
+        {/* Score by Game Ranking */}
+        {!loading && !error && activeTab === 'score_by_game' && (
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-white text-center mb-6">🏗️ Classement par Niveau</h2>
-            
-            {/* Level Selection */}
-            {availableLevels.length > 0 && (
-              <div className="mb-6">
-                <label className="block text-white text-sm font-medium mb-2">Sélectionner un niveau :</label>
-                <select
-                  value={selectedLevel || ''}
-                  onChange={(e) => setSelectedLevel(Number(e.target.value))}
-                  className="w-full max-w-md mx-auto block px-4 py-2 bg-black bg-opacity-50 text-white rounded-lg border border-gray-600 focus:border-yellow-500 focus:outline-none"
-                >
-                  {availableLevels.map((level) => (
-                    <option key={level.id} value={level.id}>
-                      {level.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {loadingLevels ? (
-              <div className="text-center text-white">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-                Loading level rankings...
-              </div>
-            ) : levelLeaderboards.length === 0 ? (
+            <h2 className="text-2xl font-bold text-white text-center mb-6">⭐ Score by Game Ranking</h2>
+            {leaderboard.length === 0 ? (
               <div className="text-center text-gray-400">
-                <p>Aucun classement disponible pour ce niveau.</p>
+                <p>No players in the leaderboard yet.</p>
               </div>
             ) : (
-              levelLeaderboards.map((levelBoard) => (
-                <div key={levelBoard.level_id} className="space-y-4">
-                  <h3 className="text-xl font-bold text-white text-center">
-                    🏗️ {levelBoard.level_name}
-                  </h3>
-                  {levelBoard.players.length === 0 ? (
-                    <div className="text-center text-gray-400 py-4">
-                      <p>Aucun score enregistré pour ce niveau.</p>
-                    </div>
-                  ) : (
-                    levelBoard.players.map((entry, index: number) => (
-                      <div 
-                        key={(entry.player as { reddit_id?: string }).reddit_id || `player-${index}`}
-                        className={`p-4 rounded-lg ${
-                          index === 0 
-                            ? 'bg-gradient-to-r from-yellow-600 to-yellow-500 border-2 border-yellow-400' 
-                            : index === 1 
-                            ? 'bg-gradient-to-r from-gray-500 to-gray-400 border-2 border-gray-300'
-                            : index === 2
-                            ? 'bg-gradient-to-r from-orange-600 to-orange-500 border-2 border-orange-400'
-                            : 'bg-gradient-to-r from-purple-700 to-purple-600 border border-purple-500'
-                        } transition-all duration-300 hover:scale-[1.02] bg-opacity-90`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-black bg-opacity-20 text-white font-bold text-lg">
-                              {index === 0 && '🥇'}
-                              {index === 1 && '🥈'}
-                              {index === 2 && '🥉'}
-                              {index > 2 && `#${index + 1}`}
-                            </div>
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold">
-                              {(() => {
-                                const player = entry.player as { username?: string };
-                                return player.username?.charAt(0).toUpperCase() || '?';
-                              })()}
-                            </div>
-                            <div>
-                              <div className="text-white font-bold text-lg">
-                                {(() => {
-                                  const player = entry.player as { username?: string };
-                                  return player.username || 'Joueur inconnu';
-                                })()}
-                              </div>
-                              <div className="text-gray-200 text-sm">
-                                Stage {entry.stage_id}
-                              </div>
-                            </div>
+              [...leaderboard]
+                .sort((a, b) => b.player.score_global - a.player.score_global)
+                .map((entry, index) => (
+                  <div 
+                    key={entry.player.reddit_id}
+                    className={`p-4 rounded-lg ${
+                      index === 0 
+                        ? 'bg-gradient-to-r from-yellow-600 to-yellow-500 border-2 border-yellow-400' 
+                        : index === 1 
+                        ? 'bg-gradient-to-r from-gray-500 to-gray-400 border-2 border-gray-300'
+                        : index === 2
+                        ? 'bg-gradient-to-r from-orange-600 to-orange-500 border-2 border-orange-400'
+                        : 'bg-gradient-to-r from-purple-700 to-purple-600 border border-purple-500'
+                    } transition-all duration-300 hover:scale-[1.02] bg-opacity-90`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-black bg-opacity-20 text-white font-bold text-lg">
+                          {index === 0 && '🥇'}
+                          {index === 1 && '🥈'}
+                          {index === 2 && '🥉'}
+                          {index > 2 && `#${index + 1}`}
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold">
+                          {entry.player.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="text-white font-bold text-lg">
+                            {entry.player.username}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-yellow-300 text-2xl">🏗️</span>
-                            <span className="text-white font-bold text-xl">
-                              {entry.score.toLocaleString()}
-                            </span>
+                          <div className="text-gray-200 text-sm">
+                            Stage {entry.player.etage_actuel}
                           </div>
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
-              ))
+                      <div className="flex items-center gap-2">
+                        <span className="text-yellow-300 text-2xl">⭐</span>
+                        <span className="text-white font-bold text-xl">
+                          {entry.player.score_global.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))
             )}
           </div>
         )}
 
-        {/* Stage Reached Ranking */}
-        {!loading && !error && activeTab === 'stage_reached' && (
+        {/* Current Stage Ranking */}
+        {!loading && !error && activeTab === 'current_stage' && (
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-white text-center mb-6">📈 Classement par Étage Atteint</h2>
+            <h2 className="text-2xl font-bold text-white text-center mb-6">🏗️ Current Stage Ranking</h2>
             {leaderboard.length === 0 ? (
               <div className="text-center text-gray-400">
-                <p>Aucun joueur dans le classement pour le moment.</p>
+                <p>No players in the leaderboard yet.</p>
               </div>
             ) : (
               [...leaderboard]
@@ -494,14 +461,14 @@ export const LeaderboardPage = ({ onHomeClick }: LeaderboardPageProps) => {
                             {entry.player.username}
                           </div>
                           <div className="text-gray-200 text-sm">
-                            Score Total: {entry.score.toLocaleString()}
+                            Total Score: {entry.score.toLocaleString()}
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-blue-300 text-2xl">📈</span>
+                        <span className="text-blue-300 text-2xl">🏗️</span>
                         <span className="text-white font-bold text-xl">
-                          Étage {entry.player.etage_actuel}
+                          Stage {entry.player.etage_actuel}
                         </span>
                       </div>
                     </div>
@@ -511,6 +478,77 @@ export const LeaderboardPage = ({ onHomeClick }: LeaderboardPageProps) => {
           </div>
         )}
 
+        {/* Games Ranking */}
+        {!loading && !error && activeTab === 'games_ranking' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-white text-center mb-6">🎮 Games Ranking</h2>
+            {loadingGames ? (
+              <div className="text-center text-white">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                Loading game rankings...
+              </div>
+            ) : gameLeaderboards.length === 0 ? (
+              <div className="text-center text-gray-400">
+                <p>No game rankings available.</p>
+              </div>
+            ) : (
+              gameLeaderboards.map((gameBoard) => (
+                <div key={gameBoard.game_name} className="bg-black bg-opacity-20 rounded-lg p-6">
+                  <h3 className="text-xl font-bold text-white mb-4 text-center">
+                    🎮 {gameBoard.game_name}
+                  </h3>
+                  <div className="space-y-3">
+                    {gameBoard.players.length === 0 ? (
+                      <div className="text-center text-gray-400 py-4">
+                        <p>No scores recorded for this game.</p>
+                      </div>
+                    ) : (
+                      gameBoard.players.map((entry, index) => (
+                        <div 
+                          key={entry.player.reddit_id}
+                          className={`p-3 rounded-lg ${
+                            index === 0 
+                              ? 'bg-gradient-to-r from-yellow-600 to-yellow-500' 
+                              : index === 1 
+                              ? 'bg-gradient-to-r from-gray-500 to-gray-400'
+                              : index === 2
+                              ? 'bg-gradient-to-r from-orange-600 to-orange-500'
+                              : 'bg-gradient-to-r from-purple-700 to-purple-600'
+                          } bg-opacity-80`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-black bg-opacity-20 text-white font-bold text-sm">
+                                {index === 0 && '🥇'}
+                                {index === 1 && '🥈'}
+                                {index === 2 && '🥉'}
+                                {index > 2 && `#${index + 1}`}
+                              </div>
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+                                {entry.player.username.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <div className="text-white font-bold">
+                                  {entry.player.username}
+                                </div>
+                                <div className="text-gray-200 text-xs">
+                                  Stage {entry.stage_id}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-white font-bold">
+                              {entry.score.toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
       </div>
     </div>
